@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-str1 = "Welcome to"
-str2 = "Holberton School!"
-# Join the two strings with a space and print the result
-print(f"{str1} {str2}")
+str1 = "Holberton"
+str2 = "School"
+# Build the sentence from str1 and str2
+print(f"Welcome to {str1} {str2}!")
