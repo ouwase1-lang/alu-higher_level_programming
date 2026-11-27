@@ -2,6 +2,8 @@
 """Unit tests for the Square class."""
 import contextlib
 import io
+import os
+import tempfile
 import unittest
 
 from models.base import Base
@@ -99,6 +101,194 @@ class TestSquare(unittest.TestCase):
         """The dictionary holds id, size, x and y."""
         self.assertEqual(Square(10, 2, 1, 4).to_dictionary(),
                          {"id": 4, "size": 10, "x": 2, "y": 1})
+
+
+class TestSquareCalls(unittest.TestCase):
+    """Explicit Square calls, one case at a time."""
+
+    def setUp(self):
+        """Reset the counter and use an empty temporary directory."""
+        Base._Base__nb_objects = 0
+        self.old_directory = os.getcwd()
+        self.directory = tempfile.TemporaryDirectory()
+        os.chdir(self.directory.name)
+
+    def tearDown(self):
+        """Return to the original directory."""
+        os.chdir(self.old_directory)
+        self.directory.cleanup()
+
+    def test_one_argument(self):
+        """Check one argument."""
+        self.assertEqual(Square(1).size, 1)
+
+    def test_two_arguments(self):
+        """Check two arguments."""
+        self.assertEqual(Square(1, 2).x, 2)
+
+    def test_three_arguments(self):
+        """Check three arguments."""
+        self.assertEqual(Square(1, 2, 3).y, 3)
+
+    def test_four_arguments(self):
+        """Check four arguments."""
+        self.assertEqual(Square(1, 2, 3, 4).id, 4)
+
+    def test_string_size(self):
+        """Check string size."""
+        with self.assertRaisesRegex(TypeError, "width must be an integer"):
+            Square("1")
+
+    def test_string_x(self):
+        """Check string x."""
+        with self.assertRaisesRegex(TypeError, "x must be an integer"):
+            Square(1, "2")
+
+    def test_string_y(self):
+        """Check string y."""
+        with self.assertRaisesRegex(TypeError, "y must be an integer"):
+            Square(1, 2, "3")
+
+    def test_negative_size(self):
+        """Check negative size."""
+        with self.assertRaisesRegex(ValueError, "width must be > 0"):
+            Square(-1)
+
+    def test_zero_size(self):
+        """Check zero size."""
+        with self.assertRaisesRegex(ValueError, "width must be > 0"):
+            Square(0)
+
+    def test_negative_x(self):
+        """Check negative x."""
+        with self.assertRaisesRegex(ValueError, "x must be >= 0"):
+            Square(1, -2)
+
+    def test_negative_y(self):
+        """Check negative y."""
+        with self.assertRaisesRegex(ValueError, "y must be >= 0"):
+            Square(1, 2, -3)
+
+    def test_save_to_file_none(self):
+        """Check save to file none."""
+        Square.save_to_file(None)
+        with open("Square.json", "r") as f:
+            self.assertEqual(f.read(), "[]")
+
+    def test_save_to_file_empty(self):
+        """Check save to file empty."""
+        Square.save_to_file([])
+        with open("Square.json", "r") as f:
+            self.assertEqual(f.read(), "[]")
+
+    def test_save_to_file_one(self):
+        """Check save to file one."""
+        Square.save_to_file([Square(1)])
+        with open("Square.json", "r") as f:
+            self.assertEqual(len(Square.from_json_string(f.read())), 1)
+
+    def test_load_from_file_missing(self):
+        """Check load from file missing."""
+        self.assertEqual(Square.load_from_file(), [])
+
+    def test_load_from_file_existing(self):
+        """Check load from file existing."""
+        Square.save_to_file([Square(1)])
+        loaded = Square.load_from_file()
+        self.assertIsInstance(loaded[0], Square)
+
+    def test_update_empty(self):
+        """Check update empty."""
+        item = Square(5)
+        before = str(item)
+        item.update()
+        self.assertEqual(str(item), before)
+
+    def test_update_args_1(self):
+        """Check update args 1."""
+        item = Square(5)
+        item.update(89)
+        self.assertEqual(item.id, 89)
+
+    def test_update_kwargs_1(self):
+        """Check update kwargs 1."""
+        item = Square(5)
+        item.update(**{"id": 89})
+        self.assertEqual(item.id, 89)
+
+    def test_create_1(self):
+        """Check create 1."""
+        item = Square.create(**{"id": 89})
+        self.assertEqual(item.id, 89)
+
+    def test_update_args_2(self):
+        """Check update args 2."""
+        item = Square(5)
+        item.update(89, 1)
+        self.assertEqual(item.id, 89)
+        self.assertEqual(item.size, 1)
+
+    def test_update_kwargs_2(self):
+        """Check update kwargs 2."""
+        item = Square(5)
+        item.update(**{"id": 89, "size": 1})
+        self.assertEqual(item.id, 89)
+        self.assertEqual(item.size, 1)
+
+    def test_create_2(self):
+        """Check create 2."""
+        item = Square.create(**{"id": 89, "size": 1})
+        self.assertEqual(item.id, 89)
+        self.assertEqual(item.size, 1)
+
+    def test_update_args_3(self):
+        """Check update args 3."""
+        item = Square(5)
+        item.update(89, 1, 2)
+        self.assertEqual(item.id, 89)
+        self.assertEqual(item.size, 1)
+        self.assertEqual(item.x, 2)
+
+    def test_update_kwargs_3(self):
+        """Check update kwargs 3."""
+        item = Square(5)
+        item.update(**{"id": 89, "size": 1, "x": 2})
+        self.assertEqual(item.id, 89)
+        self.assertEqual(item.size, 1)
+        self.assertEqual(item.x, 2)
+
+    def test_create_3(self):
+        """Check create 3."""
+        item = Square.create(**{"id": 89, "size": 1, "x": 2})
+        self.assertEqual(item.id, 89)
+        self.assertEqual(item.size, 1)
+        self.assertEqual(item.x, 2)
+
+    def test_update_args_4(self):
+        """Check update args 4."""
+        item = Square(5)
+        item.update(89, 1, 2, 3)
+        self.assertEqual(item.id, 89)
+        self.assertEqual(item.size, 1)
+        self.assertEqual(item.x, 2)
+        self.assertEqual(item.y, 3)
+
+    def test_update_kwargs_4(self):
+        """Check update kwargs 4."""
+        item = Square(5)
+        item.update(**{"id": 89, "size": 1, "x": 2, "y": 3})
+        self.assertEqual(item.id, 89)
+        self.assertEqual(item.size, 1)
+        self.assertEqual(item.x, 2)
+        self.assertEqual(item.y, 3)
+
+    def test_create_4(self):
+        """Check create 4."""
+        item = Square.create(**{"id": 89, "size": 1, "x": 2, "y": 3})
+        self.assertEqual(item.id, 89)
+        self.assertEqual(item.size, 1)
+        self.assertEqual(item.x, 2)
+        self.assertEqual(item.y, 3)
 
 
 if __name__ == "__main__":

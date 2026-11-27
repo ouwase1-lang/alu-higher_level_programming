@@ -2,6 +2,8 @@
 """Unit tests for the Rectangle class."""
 import contextlib
 import io
+import os
+import tempfile
 import unittest
 
 from models.base import Base
@@ -160,6 +162,240 @@ class TestRectangleMethods(unittest.TestCase):
         """The dictionary holds every attribute."""
         self.assertEqual(Rectangle(10, 2, 1, 9, 5).to_dictionary(),
                          {"id": 5, "width": 10, "height": 2, "x": 1, "y": 9})
+
+
+class TestRectangleCalls(unittest.TestCase):
+    """Explicit Rectangle calls, one case at a time."""
+
+    def setUp(self):
+        """Reset the counter and use an empty temporary directory."""
+        Base._Base__nb_objects = 0
+        self.old_directory = os.getcwd()
+        self.directory = tempfile.TemporaryDirectory()
+        os.chdir(self.directory.name)
+
+    def tearDown(self):
+        """Return to the original directory."""
+        os.chdir(self.old_directory)
+        self.directory.cleanup()
+
+    def test_two_arguments(self):
+        """Check two arguments."""
+        self.assertEqual(Rectangle(1, 2).height, 2)
+
+    def test_three_arguments(self):
+        """Check three arguments."""
+        self.assertEqual(Rectangle(1, 2, 3).x, 3)
+
+    def test_four_arguments(self):
+        """Check four arguments."""
+        self.assertEqual(Rectangle(1, 2, 3, 4).y, 4)
+
+    def test_five_arguments(self):
+        """Check five arguments."""
+        self.assertEqual(Rectangle(1, 2, 3, 4, 5).id, 5)
+
+    def test_string_width(self):
+        """Check string width."""
+        with self.assertRaisesRegex(TypeError, "width must be an integer"):
+            Rectangle("1", 2)
+
+    def test_string_height(self):
+        """Check string height."""
+        with self.assertRaisesRegex(TypeError, "height must be an integer"):
+            Rectangle(1, "2")
+
+    def test_string_x(self):
+        """Check string x."""
+        with self.assertRaisesRegex(TypeError, "x must be an integer"):
+            Rectangle(1, 2, "3")
+
+    def test_string_y(self):
+        """Check string y."""
+        with self.assertRaisesRegex(TypeError, "y must be an integer"):
+            Rectangle(1, 2, 3, "4")
+
+    def test_negative_width(self):
+        """Check negative width."""
+        with self.assertRaisesRegex(ValueError, "width must be > 0"):
+            Rectangle(-1, 2)
+
+    def test_negative_height(self):
+        """Check negative height."""
+        with self.assertRaisesRegex(ValueError, "height must be > 0"):
+            Rectangle(1, -2)
+
+    def test_zero_width(self):
+        """Check zero width."""
+        with self.assertRaisesRegex(ValueError, "width must be > 0"):
+            Rectangle(0, 2)
+
+    def test_zero_height(self):
+        """Check zero height."""
+        with self.assertRaisesRegex(ValueError, "height must be > 0"):
+            Rectangle(1, 0)
+
+    def test_negative_x(self):
+        """Check negative x."""
+        with self.assertRaisesRegex(ValueError, "x must be >= 0"):
+            Rectangle(1, 2, -3)
+
+    def test_negative_y(self):
+        """Check negative y."""
+        with self.assertRaisesRegex(ValueError, "y must be >= 0"):
+            Rectangle(1, 2, 3, -4)
+
+    def test_save_to_file_none(self):
+        """Check save to file none."""
+        Rectangle.save_to_file(None)
+        with open("Rectangle.json", "r") as f:
+            self.assertEqual(f.read(), "[]")
+
+    def test_save_to_file_empty(self):
+        """Check save to file empty."""
+        Rectangle.save_to_file([])
+        with open("Rectangle.json", "r") as f:
+            self.assertEqual(f.read(), "[]")
+
+    def test_save_to_file_one(self):
+        """Check save to file one."""
+        Rectangle.save_to_file([Rectangle(1, 2)])
+        with open("Rectangle.json", "r") as f:
+            self.assertEqual(len(Rectangle.from_json_string(f.read())), 1)
+
+    def test_load_from_file_missing(self):
+        """Check load from file missing."""
+        self.assertEqual(Rectangle.load_from_file(), [])
+
+    def test_load_from_file_existing(self):
+        """Check load from file existing."""
+        Rectangle.save_to_file([Rectangle(1, 2)])
+        loaded = Rectangle.load_from_file()
+        self.assertIsInstance(loaded[0], Rectangle)
+
+    def test_update_empty(self):
+        """Check update empty."""
+        item = Rectangle(5, 5)
+        before = str(item)
+        item.update()
+        self.assertEqual(str(item), before)
+
+    def test_update_args_1(self):
+        """Check update args 1."""
+        item = Rectangle(5, 5)
+        item.update(89)
+        self.assertEqual(item.id, 89)
+
+    def test_update_kwargs_1(self):
+        """Check update kwargs 1."""
+        item = Rectangle(5, 5)
+        item.update(**{"id": 89})
+        self.assertEqual(item.id, 89)
+
+    def test_create_1(self):
+        """Check create 1."""
+        item = Rectangle.create(**{"id": 89})
+        self.assertEqual(item.id, 89)
+
+    def test_update_args_2(self):
+        """Check update args 2."""
+        item = Rectangle(5, 5)
+        item.update(89, 1)
+        self.assertEqual(item.id, 89)
+        self.assertEqual(item.width, 1)
+
+    def test_update_kwargs_2(self):
+        """Check update kwargs 2."""
+        item = Rectangle(5, 5)
+        item.update(**{"id": 89, "width": 1})
+        self.assertEqual(item.id, 89)
+        self.assertEqual(item.width, 1)
+
+    def test_create_2(self):
+        """Check create 2."""
+        item = Rectangle.create(**{"id": 89, "width": 1})
+        self.assertEqual(item.id, 89)
+        self.assertEqual(item.width, 1)
+
+    def test_update_args_3(self):
+        """Check update args 3."""
+        item = Rectangle(5, 5)
+        item.update(89, 1, 2)
+        self.assertEqual(item.id, 89)
+        self.assertEqual(item.width, 1)
+        self.assertEqual(item.height, 2)
+
+    def test_update_kwargs_3(self):
+        """Check update kwargs 3."""
+        item = Rectangle(5, 5)
+        item.update(**{"id": 89, "width": 1, "height": 2})
+        self.assertEqual(item.id, 89)
+        self.assertEqual(item.width, 1)
+        self.assertEqual(item.height, 2)
+
+    def test_create_3(self):
+        """Check create 3."""
+        item = Rectangle.create(**{"id": 89, "width": 1, "height": 2})
+        self.assertEqual(item.id, 89)
+        self.assertEqual(item.width, 1)
+        self.assertEqual(item.height, 2)
+
+    def test_update_args_4(self):
+        """Check update args 4."""
+        item = Rectangle(5, 5)
+        item.update(89, 1, 2, 3)
+        self.assertEqual(item.id, 89)
+        self.assertEqual(item.width, 1)
+        self.assertEqual(item.height, 2)
+        self.assertEqual(item.x, 3)
+
+    def test_update_kwargs_4(self):
+        """Check update kwargs 4."""
+        item = Rectangle(5, 5)
+        item.update(**{"id": 89, "width": 1, "height": 2, "x": 3})
+        self.assertEqual(item.id, 89)
+        self.assertEqual(item.width, 1)
+        self.assertEqual(item.height, 2)
+        self.assertEqual(item.x, 3)
+
+    def test_create_4(self):
+        """Check create 4."""
+        item = Rectangle.create(**{"id": 89, "width": 1, "height": 2, "x": 3})
+        self.assertEqual(item.id, 89)
+        self.assertEqual(item.width, 1)
+        self.assertEqual(item.height, 2)
+        self.assertEqual(item.x, 3)
+
+    def test_update_args_5(self):
+        """Check update args 5."""
+        item = Rectangle(5, 5)
+        item.update(89, 1, 2, 3, 4)
+        self.assertEqual(item.id, 89)
+        self.assertEqual(item.width, 1)
+        self.assertEqual(item.height, 2)
+        self.assertEqual(item.x, 3)
+        self.assertEqual(item.y, 4)
+
+    def test_update_kwargs_5(self):
+        """Check update kwargs 5."""
+        item = Rectangle(5, 5)
+        item.update(**{"id": 89, "width": 1, "height": 2, "x": 3, "y": 4})
+        self.assertEqual(item.id, 89)
+        self.assertEqual(item.width, 1)
+        self.assertEqual(item.height, 2)
+        self.assertEqual(item.x, 3)
+        self.assertEqual(item.y, 4)
+
+    def test_create_5(self):
+        """Check create 5."""
+        item = Rectangle.create(**{
+            "id": 89, "width": 1, "height": 2,
+            "x": 3, "y": 4})
+        self.assertEqual(item.id, 89)
+        self.assertEqual(item.width, 1)
+        self.assertEqual(item.height, 2)
+        self.assertEqual(item.x, 3)
+        self.assertEqual(item.y, 4)
 
 
 if __name__ == "__main__":
